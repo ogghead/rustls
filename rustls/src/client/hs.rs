@@ -374,6 +374,8 @@ fn emit_client_hello_for_retry(
     // Apply TLS fingerprint profile if configured.
     if let Some(ref fp_config) = config.fingerprint {
         let fp = fp_config.fingerprint;
+        log::info!("rustls: applying TLS fingerprint profile '{}' with {} cipher suites, {} extensions",
+            fp.name, fp.cipher_suites.len(), fp.extensions.len());
 
         // Override cipher suite list with the profile's wire-order list.
         cipher_suites = fp.cipher_suites.to_vec();
