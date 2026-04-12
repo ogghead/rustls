@@ -281,6 +281,9 @@ pub struct ClientConfig {
 
     /// How to offer Encrypted Client Hello (ECH). The default is to not offer ECH.
     pub(super) ech_mode: Option<EchMode>,
+
+    /// Optional TLS fingerprint configuration for browser impersonation.
+    pub(crate) fingerprint: Option<crate::fingerprint::FingerprintConfig>,
 }
 
 impl ClientConfig {
@@ -384,6 +387,15 @@ impl ClientConfig {
         }
 
         is_fips
+    }
+
+    /// Apply a TLS fingerprint profile to this configuration.
+    ///
+    /// When set, the ClientHello message will be constructed to match the
+    /// specified browser's TLS fingerprint (cipher suites, extension order, GREASE).
+    pub fn with_fingerprint(mut self, config: crate::fingerprint::FingerprintConfig) -> Self {
+        self.fingerprint = Some(config);
+        self
     }
 
     /// Return the crypto provider used to construct this client configuration.

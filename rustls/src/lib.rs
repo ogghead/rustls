@@ -455,6 +455,8 @@ mod check;
 mod bs_debug;
 mod builder;
 mod enums;
+/// TLS fingerprint profiles for browser impersonation.
+pub mod fingerprint;
 mod key_log;
 #[cfg(feature = "std")]
 mod key_log_file;
@@ -620,6 +622,7 @@ pub mod client {
 pub use client::ClientConfig;
 #[cfg(feature = "std")]
 pub use client::ClientConnection;
+pub use fingerprint::{Fingerprint, FingerprintConfig};
 
 /// Items for use in a server.
 pub mod server {

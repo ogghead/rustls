@@ -26,7 +26,7 @@ use crate::enums::{
 use crate::error::{Error, PeerIncompatible, PeerMisbehaved};
 use crate::hash_hs::HandshakeHashBuffer;
 use crate::log::{debug, trace};
-use crate::msgs::base::Payload;
+use crate::msgs::base::{Payload, PayloadU8};
 use crate::msgs::enums::{Compression, ExtensionType};
 use crate::msgs::handshake::{
     CertificateStatusRequest, ClientExtensions, ClientExtensionsInput, ClientHelloPayload,
@@ -369,6 +369,31 @@ fn emit_client_hello_for_retry(
     if supported_versions.tls12 {
         // We don't do renegotiation at all, in fact.
         cipher_suites.push(CipherSuite::TLS_EMPTY_RENEGOTIATION_INFO_SCSV);
+    }
+
+    // Apply TLS fingerprint profile if configured.
+    if let Some(ref fp_config) = config.fingerprint {
+        let fp = fp_config.fingerprint;
+
+        // Override cipher suite list with the profile's wire-order list.
+        cipher_suites = fp.cipher_suites.to_vec();
+
+        // Override named groups.
+        exts.named_groups = Some(fp.named_groups.to_vec());
+
+        // Override signature schemes.
+        exts.signature_schemes = Some(fp.signature_schemes.to_vec());
+
+        // Ensure extensions that browsers always send are present.
+        if exts.renegotiation_info.is_none() {
+            exts.renegotiation_info = Some(PayloadU8::empty());
+        }
+        if exts.ec_point_formats.is_none() {
+            exts.ec_point_formats = Some(SupportedEcPointFormats::default());
+        }
+
+        // Override extension encoding order.
+        exts.encoding_order_override = Some(fp.extensions.to_vec());
     }
 
     let mut chp_payload = ClientHelloPayload {

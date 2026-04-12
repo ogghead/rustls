@@ -933,6 +933,10 @@ extension_struct! {
 
         /// Extensions that must appear contiguously.
         pub(crate) contiguous_extensions: Vec<ExtensionType>,
+
+        /// If set, overrides the entire extension encoding order.
+        /// Used by TLS fingerprint profiles.
+        pub(crate) encoding_order_override: Option<Vec<ExtensionType>>,
     }
 }
 
@@ -964,6 +968,7 @@ impl ClientExtensions<'_> {
             encrypted_client_hello_outer,
             order_seed,
             contiguous_extensions,
+            encoding_order_override,
         } = self;
         ClientExtensions {
             server_name: server_name.map(|x| x.into_owned()),
@@ -991,10 +996,30 @@ impl ClientExtensions<'_> {
             encrypted_client_hello_outer,
             order_seed,
             contiguous_extensions,
+            encoding_order_override,
         }
     }
 
     pub(crate) fn used_extensions_in_encoding_order(&self) -> Vec<ExtensionType> {
+        // If a fingerprint profile provides an explicit order, use it.
+        if let Some(ref order) = self.encoding_order_override {
+            // Filter to only include extensions that are actually set.
+            let used = self.collect_used();
+            let mut result: Vec<ExtensionType> = order
+                .iter()
+                .copied()
+                .filter(|ext| used.contains(ext))
+                .collect();
+            // Append any used extensions not in the override (safety net).
+            for ext in &used {
+                if !result.contains(ext) {
+                    result.push(*ext);
+                }
+            }
+            return result;
+        }
+
+        // Default behavior: randomized order.
         let mut exts = self.order_insensitive_extensions_in_random_order();
         exts.extend(&self.contiguous_extensions);
 
