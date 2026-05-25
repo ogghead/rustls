@@ -178,3 +178,85 @@ pub static FIREFOX_128: Fingerprint = Fingerprint {
     grease: false,
     shuffle_extensions: false,
 };
+
+// ---------------------------------------------------------------------------
+// OkHttp 5 / Android Conscrypt (BoringSSL-based, no GREASE)
+// ---------------------------------------------------------------------------
+
+/// Cipher suites advertised by OkHttp 5 on Android 14 (Conscrypt/BoringSSL).
+///
+/// Conscrypt on Android advertises a leaner set than Chrome. No GREASE, no
+/// legacy CBC/RSA-only suites. TLS 1.3 suites are implicit (always offered by
+/// Conscrypt) but listed here for wire-format completeness.
+static OKHTTP5_CIPHER_SUITES: &[CipherSuite] = &[
+    CipherSuite::TLS13_AES_128_GCM_SHA256,
+    CipherSuite::TLS13_AES_256_GCM_SHA384,
+    CipherSuite::TLS13_CHACHA20_POLY1305_SHA256,
+    CipherSuite::TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+    CipherSuite::TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+    CipherSuite::TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+    CipherSuite::TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+    CipherSuite::TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+    CipherSuite::TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+    CipherSuite::TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+    CipherSuite::TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+    CipherSuite::TLS_RSA_WITH_AES_128_GCM_SHA256,
+    CipherSuite::TLS_RSA_WITH_AES_256_GCM_SHA384,
+    CipherSuite::TLS_RSA_WITH_AES_128_CBC_SHA,
+    CipherSuite::TLS_RSA_WITH_AES_256_CBC_SHA,
+];
+
+/// Extension types advertised by OkHttp 5 / Conscrypt in wire order.
+///
+/// Key differences from Chrome: no GREASE extensions, no extended_master_secret,
+/// no renegotiation_info, no SCT, no compress_certificate.
+static OKHTTP5_EXTENSIONS: &[ExtensionType] = &[
+    ExtensionType::ServerName,               // server_name (0x0000)
+    ExtensionType::EllipticCurves,           // supported_groups (0x000a)
+    ExtensionType::ECPointFormats,           // ec_point_formats (0x000b)
+    ExtensionType::ALProtocolNegotiation,    // application_layer_protocol_negotiation (0x0010)
+    ExtensionType::StatusRequest,            // status_request (0x0005)
+    ExtensionType::SignatureAlgorithms,      // signature_algorithms (0x000d)
+    ExtensionType::KeyShare,                 // key_share (0x0033)
+    ExtensionType::PSKKeyExchangeModes,      // psk_key_exchange_modes (0x002d)
+    ExtensionType::SupportedVersions,        // supported_versions (0x002b)
+    ExtensionType::ExtendedMasterSecret,     // extended_master_secret (0x0017)
+    ExtensionType::SessionTicket,            // session_ticket (0x0023)
+    ExtensionType::RenegotiationInfo,        // renegotiation_info (0xff01)
+    ExtensionType::Padding,                  // padding (0x0015)
+];
+
+/// Named groups advertised by OkHttp 5 / Conscrypt.
+static OKHTTP5_NAMED_GROUPS: &[NamedGroup] = &[
+    NamedGroup::X25519,
+    NamedGroup::secp256r1,
+    NamedGroup::secp384r1,
+];
+
+/// Signature schemes advertised by OkHttp 5 / Conscrypt.
+static OKHTTP5_SIGNATURE_SCHEMES: &[SignatureScheme] = &[
+    SignatureScheme::ECDSA_NISTP256_SHA256,
+    SignatureScheme::ECDSA_NISTP384_SHA384,
+    SignatureScheme::ECDSA_NISTP521_SHA512,
+    SignatureScheme::RSA_PSS_SHA256,
+    SignatureScheme::RSA_PSS_SHA384,
+    SignatureScheme::RSA_PSS_SHA512,
+    SignatureScheme::RSA_PKCS1_SHA256,
+    SignatureScheme::RSA_PKCS1_SHA384,
+    SignatureScheme::RSA_PKCS1_SHA512,
+];
+
+/// TLS fingerprint profile for OkHttp 5 on Android 14 (Conscrypt/BoringSSL).
+///
+/// Matches the ClientHello produced by Instagram's Tigon/MNS networking stack
+/// on Android. No GREASE injection, no extension shuffling — Conscrypt uses a
+/// fixed, deterministic ClientHello unlike Chrome's randomized approach.
+pub static OKHTTP5: Fingerprint = Fingerprint {
+    name: "okhttp5",
+    cipher_suites: OKHTTP5_CIPHER_SUITES,
+    extensions: OKHTTP5_EXTENSIONS,
+    named_groups: OKHTTP5_NAMED_GROUPS,
+    signature_schemes: OKHTTP5_SIGNATURE_SCHEMES,
+    grease: false,
+    shuffle_extensions: false,
+};
