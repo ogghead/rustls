@@ -386,12 +386,37 @@ fn emit_client_hello_for_retry(
         // Override signature schemes.
         exts.signature_schemes = Some(fp.signature_schemes.to_vec());
 
-        // Ensure extensions that browsers always send are present.
-        if exts.renegotiation_info.is_none() {
-            exts.renegotiation_info = Some(PayloadU8::empty());
+        // The profile's extension list is authoritative for the optional
+        // extensions rustls adds on its own: ensure the ones the profile lists
+        // are present (browsers always send renegotiation_info /
+        // ec_point_formats), and drop the ones it does not list. A minimal
+        // TLS 1.3 stack such as Instagram's MNS sends neither
+        // extended_master_secret nor status_request, and the encoding-order
+        // safety net would otherwise append them after the profile's order,
+        // producing a ClientHello no real client emits.
+        let listed = |ext: ExtensionType| fp.extensions.contains(&ext);
+        if listed(ExtensionType::RenegotiationInfo) {
+            if exts.renegotiation_info.is_none() {
+                exts.renegotiation_info = Some(PayloadU8::empty());
+            }
+        } else {
+            exts.renegotiation_info = None;
         }
-        if exts.ec_point_formats.is_none() {
-            exts.ec_point_formats = Some(SupportedEcPointFormats::default());
+        if listed(ExtensionType::ECPointFormats) {
+            if exts.ec_point_formats.is_none() {
+                exts.ec_point_formats = Some(SupportedEcPointFormats::default());
+            }
+        } else {
+            exts.ec_point_formats = None;
+        }
+        if !listed(ExtensionType::ExtendedMasterSecret) {
+            exts.extended_master_secret_request = None;
+        }
+        if !listed(ExtensionType::StatusRequest) {
+            exts.certificate_status_request = None;
+        }
+        if !listed(ExtensionType::SessionTicket) {
+            exts.session_ticket = None;
         }
 
         // Override extension encoding order.

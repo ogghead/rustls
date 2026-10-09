@@ -260,3 +260,57 @@ pub static OKHTTP5: Fingerprint = Fingerprint {
     grease: false,
     shuffle_extensions: false,
 };
+
+// ---------------------------------------------------------------------------
+// Instagram Android app — Tigon/MNS networking stack (mbedTLS-based)
+// ---------------------------------------------------------------------------
+
+/// The single cipher suite the Instagram Android app offers (TLS 1.3 only).
+static INSTAGRAM_MNS_CIPHER_SUITES: &[CipherSuite] = &[CipherSuite::TLS13_AES_128_GCM_SHA256];
+
+/// Extension types in wire order. Exactly these seven and nothing else: no
+/// ec_point_formats, extended_master_secret, status_request, session_ticket,
+/// renegotiation_info, padding or GREASE.
+static INSTAGRAM_MNS_EXTENSIONS: &[ExtensionType] = &[
+    ExtensionType::ServerName,            // server_name (0x0000)
+    ExtensionType::SupportedVersions,     // supported_versions (0x002b): TLS 1.3 only
+    ExtensionType::EllipticCurves,        // supported_groups (0x000a)
+    ExtensionType::KeyShare,              // key_share (0x0033): one X25519 share
+    ExtensionType::SignatureAlgorithms,   // signature_algorithms (0x000d)
+    ExtensionType::ALProtocolNegotiation, // application_layer_protocol_negotiation (0x0010): h2
+    ExtensionType::PSKKeyExchangeModes,   // psk_key_exchange_modes (0x002d)
+];
+
+static INSTAGRAM_MNS_NAMED_GROUPS: &[NamedGroup] = &[NamedGroup::X25519, NamedGroup::secp256r1];
+
+static INSTAGRAM_MNS_SIGNATURE_SCHEMES: &[SignatureScheme] = &[
+    SignatureScheme::ECDSA_NISTP256_SHA256,
+    SignatureScheme::ECDSA_NISTP384_SHA384,
+    SignatureScheme::RSA_PSS_SHA256,
+];
+
+/// TLS fingerprint profile for the Instagram Android app's own networking
+/// stack (`X-FB-HTTP-Engine: Tigon/MNS/TCP`, mbedTLS-based — NOT OkHttp /
+/// Conscrypt). Wire shape, JA3 `771,4865,0-43-10-51-13-16-45,29-23,`:
+/// legacy version TLS 1.2, one cipher (TLS_AES_128_GCM_SHA256), seven
+/// extensions in the order above, groups X25519 + P-256, a single X25519 key
+/// share, signature schemes ecdsa_secp256r1_sha256 / ecdsa_secp384r1_sha384 /
+/// rsa_pss_rsae_sha256, ALPN `h2` only.
+///
+/// Source: the candidate posted in instagrapi issue #2852 (2026-10-09),
+/// confirmed by other reporters and matched by instagrapi 3.0.21's "require
+/// TLS 1.3" change, which was verified to restore fresh CAA logins that
+/// Instagram's edge had been answering with an empty-body HTTP 429 for every
+/// non-app TLS fingerprint since ~2026-10-01.
+///
+/// The config using this profile must restrict protocol versions to TLS 1.3
+/// and offer only `h2` in ALPN; the profile cannot express those itself.
+pub static INSTAGRAM_MNS: Fingerprint = Fingerprint {
+    name: "instagram-mns",
+    cipher_suites: INSTAGRAM_MNS_CIPHER_SUITES,
+    extensions: INSTAGRAM_MNS_EXTENSIONS,
+    named_groups: INSTAGRAM_MNS_NAMED_GROUPS,
+    signature_schemes: INSTAGRAM_MNS_SIGNATURE_SCHEMES,
+    grease: false,
+    shuffle_extensions: false,
+};
